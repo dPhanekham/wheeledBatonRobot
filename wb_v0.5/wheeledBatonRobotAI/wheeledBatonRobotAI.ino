@@ -27,6 +27,9 @@ int esc1_speed;
 int esc2_speed;
 int limit;
 
+unsigned int timeout;
+unsigned int TIMEOUT_MAX = 100000;
+
 void setup() {
   Serial.begin(9600);
   Serial.println("Nightmares: Wheeled baton robot 0.5");
@@ -47,10 +50,14 @@ void setup() {
   esc2.write(throttle);
   esc1.write(throttle);
   esc2.write(throttle);
+  
+  timeout = 0;
 }
 
 void loop()
 {
+  timeout++;
+  
   if (pin_num == 10) {
     esc1_speed = pin_value;
     int throttle = map(esc1_speed, 0, 200, 89-limit, 89+limit);
@@ -60,6 +67,7 @@ void loop()
     
     esc1.write(throttle);
     pin_num = 0;
+    timeout = 0;
   }
   else if (pin_num == 11) {
     esc2_speed = pin_value;
@@ -70,6 +78,16 @@ void loop()
     
     esc2.write(throttle);
     pin_num = 0;
+    timeout = 0;
+  }
+  else if(timeout > TIMEOUT_MAX){
+    Serial.print("TIMEOUT!! :");
+    Serial.println(timeout);
+    int throttle = 89;
+    esc1_speed = 100;
+    esc2_speed = 100;
+    esc1.write(throttle);
+    esc2.write(throttle);
   }
   
   //Serial.println();
@@ -86,6 +104,17 @@ void loop()
 
   // parse incoming command start flag 
   get_char = Serial.read();
+  if (get_char == '$') {
+    Serial.println("STOP!");
+    esc1_speed = 100;
+    esc1.write(89);
+    esc2_speed = 100;
+    esc2.write(89);
+    pin_num = 0;
+  }
+  else if(get_char == '!'){
+    timeout = 0;
+  }
   if (get_char != START_CMD_CHAR) return; // if no command start flag, return to loop().
   
   // parse incoming pin# and value  
@@ -99,6 +128,8 @@ void loop()
 
     
    get_char = Serial.read();
+   
+   
   
   
   
